@@ -1,6 +1,6 @@
 {
-  "name": "Free AI ReCaptcha Solver by Raptor (Captcha Plugin)",
-  "version": "0.2.13",
+  "name": "Free AI ReCaptcha Solver by Raptor",
+  "version": "1.1.15.10",
   "description": "Automatically solves ReCaptcha images using a built-in neural network. Completely free. No registration or key purchase required.",
   "default_locale": "en",
   "web_accessible_resources": [
@@ -61,11 +61,15 @@
     "scripting",
     "declarativeNetRequest",
     "idle",
-    "storage"
+    "storage",
+    "tabs",
+    "debugger",
+    "offscreen"
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "minimum_chrome_version": "116",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },
@@ -75,8 +79,9 @@
     "default_popup": "popup.html"
   },
 "host_permissions": [
-  "*://*.google.com/recaptcha/*"
+  "*://*.google.com/recaptcha/*",
+  "*://*.recaptcha.net/recaptcha/*",
+  "<all_urls>"
 ],
-  "minimum_chrome_version": "111",
-  "version_name": "v0.2.13"
+  "version_name": "v1.1.15.10"
 }

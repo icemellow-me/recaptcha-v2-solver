@@ -1,57 +1,83 @@
-# Free AI ReCaptcha Solver by Raptor
+# reCAPTCHA-v2-Solver
 
-A browser extension that automatically solves reCAPTCHA image challenges using a built-in ONNX neural network. Completely free — no API key or registration required.
+Standalone Python reCAPTCHA v2 solver using Chrome CDP + ONNX AI models.
 
-## Features
-
-- Solves 3×3 and 4×4 reCAPTCHA image challenges locally using on-device AI models
-- Auto-opens the reCAPTCHA checkbox and starts solving without user interaction
-- Configurable solve delay (default 2 s) to avoid triggering bot detection
-- Perceptual hash cache — a bundled SQLite database of known image hashes with verified answers is checked before running inference, improving both speed and accuracy
-
-## Installation
-
-### Base extension (Chrome 111+)
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode** (top-right toggle)
-3. Click **Load unpacked**
-4. Select the `extension/` folder
-
-### WS addon (Chrome 116+)
-
-The WS addon enables WebSocket-based remote control for automated pipelines. It is installed on top of the base extension.
-
-See [`ws-addon/README.md`](ws-addon/README.md) for installation instructions.
-
-## Configuration
-
-Click the extension icon to open the popup. Available settings:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Enabled | On | Master on/off switch |
-| Auto-open | On | Automatically click the reCAPTCHA checkbox |
-| Auto-solve | On | Automatically solve the image challenge |
-| Solve delay | On, 2 s | Wait before submitting answers (reduces detection risk) |
-| Disabled sites | — | Hostnames where the extension is inactive |
+No browser extension required — runs as a 2captcha-compatible API server.
 
 ## How It Works
 
-1. Content scripts injected into reCAPTCHA frames intercept the challenge UI.
-2. Each challenge image is perceptually hashed and looked up in the bundled SQLite cache (`db/captcha.sqlite`). Cache hits return the verified answer without running inference.
-3. On a cache miss, the images are passed to two ONNX models running entirely in the browser: `models/type.onnx` determines whether each tile contains the target object (3×3 challenges); `models/grid.onnx` scores each tile position for the correct selection (4×4 challenges).
-4. Matching tiles are clicked via the MAIN-world content script that wraps the page's `addEventListener`.
-5. All encountered images and their answers are saved to IndexedDB and periodically uploaded to `captcharaptor.com` to expand the training dataset for future model improvements.
+1. **Chrome CDP Automation** — Controls a headless Chrome instance via DevTools Protocol
+2. **ONNX AI Classification** — Uses `type.onnx` (3×3 tile classifier) and `grid.onnx` (4×4 grid classifier) to identify challenge objects
+3. **2captcha-compatible API** — `POST /in.php` to submit, `GET /res.php` to poll for tokens
 
-## Data Collection
+## Prerequisites
 
-The extension collects anonymized captcha solve data (challenge images, selected tiles, solve outcome) and periodically uploads it to `captcharaptor.com`. This data is used to improve the AI models.
+- Python 3.11+
+- Google Chrome (headless)
+- Xvfb (virtual framebuffer)
+- ONNX models in `extension/models/`
 
-- A random 16-character reporting key is generated per browser profile and stored locally. It is not linked to any account.
-- Uploads can be disabled in the **Reports** section of the extension popup.
-- No personally identifiable information is collected.
+## Install
 
-## License
+```bash
+pip install onnxruntime Pillow websockets
+apt install google-chrome-stable xvfb
+```
 
-MIT — see [LICENSE](LICENSE)
+## Usage
+
+```bash
+# Start Xvfb
+Xvfb :100 -screen 0 1920x1080x24 &
+export DISPLAY=:100
+
+# Start Chrome with CDP
+google-chrome-stable --no-sandbox --disable-gpu --remote-debugging-port=9333 --user-data-dir=/tmp/captcha-chrome about:blank &
+
+# Start the solver server
+python3 solver-server.py --api-key YOUR_KEY --port 8866 --cdp-port 9333
+```
+
+## API
+
+### Submit a task
+```
+POST /in.php
+key=YOUR_KEY&method=userrecaptcha&googlekey=SITE_KEY&pageurl=PAGE_URL
+```
+Response: `OK|task_id`
+
+### Get result
+```
+GET /res.php?key=YOUR_KEY&action=get&id=task_id
+```
+Response: `OK|recaptcha_token` or `CAPCHA_NOT_READY`
+
+## Architecture
+
+```
+solver-server.py        # Main server + CDP automation + ONNX inference
+extension/models/
+  type.onnx             # 3×3 tile classifier (100×100 → 16 classes)
+  grid.onnx             # 4×4 grid classifier (240×240 → 11×16 grid)
+  grid.meta.json        # Grid model metadata (thresholds, class mapping)
+extension/captcha/
+  recaptcha_ai.js       # Original extension AI logic (reference)
+```
+
+## Current Status
+
+**Work in progress** — the pipeline works end-to-end (navigate → click → detect → classify → click tiles → verify → extract token) but classification accuracy needs improvement:
+
+- 3×3 challenges: type model classifies individual tiles
+- 4×4 challenges: grid model classifies composite image
+- Screenshot-based tile capture works but resolution affects accuracy
+- Direct composite image download from payload URL is preferred
+
+## TODO
+
+- [ ] Improve image capture quality for better ONNX model accuracy
+- [ ] Add perceptual hash (phash) classification as fallback
+- [ ] Tune classification thresholds
+- [ ] Add retry logic with human-like delays
+- [ ] Support reCAPTCHA v3

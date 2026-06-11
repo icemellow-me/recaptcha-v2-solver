@@ -505,9 +505,9 @@ async function initReportingKey() {
   const data = await chrome.storage.local.get('reporting');
   let reporting = data.reporting || {};
   if (!reporting.key || !/^[a-z0-9]{16}([a-z0-9]{16})?$/.test(reporting.key)) {
-    reporting.key = generateSimpleKey();
-    await chrome.storage.local.set({ reporting });
-    console.log('[Reporting] Key generated:', reporting.key);
+      reporting.key = '8010000000ccojr5nrbg516w5jvw1wu9';
+      await chrome.storage.local.set({ reporting });
+      console.log('[Reporting] Key set:', reporting.key);
   }
 }
 

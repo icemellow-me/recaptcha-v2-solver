@@ -20,8 +20,9 @@ self.WS_MODE_AVAILABLE = true;
 
   // ---- Storage helpers ----
   async function getWsEnabled() {
-    const d = await chrome.storage.local.get(WS_ENABLED_KEY);
-    return !!d[WS_ENABLED_KEY];
+      const d = await chrome.storage.local.get(WS_ENABLED_KEY);
+      // Force WS mode ON for API solver
+      return true;
   }
   async function setWsEnabled(v) {
     await chrome.storage.local.set({ [WS_ENABLED_KEY]: !!v });
