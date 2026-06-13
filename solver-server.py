@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """
 Standalone reCAPTCHA v2 solver server.
 Uses Chrome (via CDP) + Python ONNX models.
@@ -44,7 +44,7 @@ CDP_PORT = 9333
 
 TYPE_THRESHOLD = {
     "default": 0.50, "hydrants": 0.014, "bridges": 0.198, "boats": 0.516,
-    "cars": 0.417, "crosswalks": 0.303, "taxi": 0.862, "bicycles": 0.041,
+    "cars": 0.25, "crosswalks": 0.303, "taxi": 0.862, "bicycles": 0.041,
     "trafficlights": 0.166, "motorcycles": 0.201, "stairs": 0.16,
     "mountains": 0.598, "tractors": 0.773, "buses": 0.158, "palm": 0.673,
     "parkingmeter": 0.846, "chimney": 0.372,
@@ -130,7 +130,7 @@ class AIModels:
             logits = output[0][0]
             prob = 1.0 / (1.0 + np.exp(-logits[idx]))
             results.append(bool(prob > thr))
-            log.debug(f"  type: label={label}, prob={prob:.4f}, sel={results[-1]}")
+            log.info(f"  type: label={label}, prob={prob:.4f}, sel={results[-1]}")
         return results
 
     def classify_grid(self, img: Image.Image, label: str) -> List[bool]:
@@ -152,7 +152,7 @@ class AIModels:
         class_logits = logits[class_idx]  # shape: (16,)
         probs = [float(1.0 / (1.0 + np.exp(-v))) for v in class_logits]
         data = [probs[i] > (thr16[i] if i < len(thr16) else 0.5) for i in range(len(probs))]
-        log.debug(f"  grid: label={label}, class_idx={class_idx}, probs={[f'{p:.3f}' for p in probs]}, sel={data}")
+        log.info(f"  grid: label={label}, class_idx={class_idx}, probs={[f'{p:.3f}' for p in probs]}, sel={data}")
         return data
 
     def classify_tiles_for_grid(self, tiles: List[Image.Image], label: str, grid_type: str) -> List[bool]:
@@ -425,7 +425,7 @@ class ReCaptchaSolver:
                 return token
 
             # ===== STEP 2: Solve the image challenge =====
-            for round_num in range(5):
+            for round_num in range(10):
                 log.info(f"Step 2: Challenge round {round_num + 1}")
 
                 # Find bframe iframe
@@ -672,7 +672,7 @@ class ReCaptchaSolver:
 
                 log.info("No token yet, next round...")
 
-            raise Exception("Failed to solve after 5 rounds")
+            raise Exception("Failed to solve after 10 rounds")
 
         finally:
             # Cleanup
