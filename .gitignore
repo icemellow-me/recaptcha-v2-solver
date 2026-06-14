@@ -2,23 +2,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.log
-.env
 *.egg-info/
-dist/
-build/
-.eggs/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Chrome user data profiles (runtime, not source)
-chrome-profile/
-chrome-user-data/
-/tmp/
-
-# ONNX runtime cache
-*.onnx_data/
-
-# Session/temp files
-*.session
+.venv/
+tmp/
+*.onnx
